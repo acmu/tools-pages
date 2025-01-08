@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Config Generator</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            font-family: monospace;
+        }
+        #configDisplay {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button {
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #prefixInput {
+            width: 100%;
+            height: 100px;
+            margin: 10px 0;
+            padding: 8px;
+            font-family: monospace;
+        }
+        .toast {
+            position: fixed;
+            left: 50%;
+            top: 20px;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+            z-index: 1000;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 14px;
+            letter-spacing: 0.3px;
+        }
+        @keyframes fadeIn {
+            from { 
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+        @keyframes fadeOut {
+            from { 
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+            to { 
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div>
+            <label for="prefixInput">输入前缀列表（用英文逗号分隔）：</label>
+            <textarea 
+                id="prefixInput" 
+                placeholder="例如: /api/m/tms/mapi/finFactor,/api/m/tms/mapi/roadSection"
+            ></textarea>
+        </div>
+        <div id="configDisplay"></div>
+        <button onclick="copyConfig()">Copy Configuration</button>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // 初始的前缀列表
+        const defaultPrefixs = [
+            '/api/m/tms/mapi/finFactor',
+            '/api/m/tms/mapi/roadSection'
+        ].join(',');
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        function generateConfig(inputText) {
+            const prefixs = inputText
+                .split(',')
+                .map(p => p.trim())
+                .filter(p => p); // 过滤空值
+
+            const mockConfigs = prefixs.map(prefix => ({
+                prefix,
+                host: 'https://apifoxmock.com',
+                url: '/m1/561651-0-default'
+            }));
+
+            return `MULTIPLE_MOCK_PROXY=${JSON.stringify(mockConfigs)}`;
+        }
+
+        function updateDisplay() {
+            const inputText = document.getElementById('prefixInput').value;
+            const configDisplay = document.getElementById('configDisplay');
+            configDisplay.textContent = generateConfig(inputText);
+        }
+
+        function copyConfig() {
+            const configText = document.getElementById('configDisplay').textContent;
+            navigator.clipboard.writeText(configText)
+                .then(() => showToast('复制成功！'))
+                .catch(err => showToast('复制失败：' + err));
+        }
+
+        // 设置默认值并初始化显示
+        document.getElementById('prefixInput').value = defaultPrefixs;
+        updateDisplay();
+
+        // 添加实时更新监听
+        document.getElementById('prefixInput').addEventListener('input', updateDisplay);
+    </script>
+</body>
+</html> 
