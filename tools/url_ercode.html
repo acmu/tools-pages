@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMap URI 调试参数配置 (V2)</title>
+    <!-- 引入 Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入 QRCode.js -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        #app {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        h1, h2 {
+            color: #1a73e8;
+            border-bottom: 2px solid #eef;
+            padding-bottom: 10px;
+        }
+        fieldset {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        legend {
+            font-weight: bold;
+            color: #333;
+            padding: 0 10px;
+        }
+        .param-row {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .param-toggle {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .param-row label {
+            min-width: 120px;
+            font-weight: 500;
+            margin-right: 10px;
+            text-align: right;
+            color: #555;
+            flex-shrink: 0;
+        }
+        .param-row input[type="text"] {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        .param-row input[type="text"]:focus {
+            border-color: #1a73e8;
+            outline: none;
+        }
+        .param-row input[type="text"]:disabled {
+            background-color: #f0f2f5;
+            color: #999;
+        }
+        .nested-fieldset {
+            margin-left: 20px;
+            border-left: 2px solid #1a73e8;
+            padding-left: 15px;
+        }
+        .custom-param-item {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .result-container {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        #result-url {
+            width: 100%;
+            padding: 10px;
+            background: #eef2f5;
+            border: 1px solid #d1d9e0;
+            border-radius: 4px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            font-family: "Courier New", Courier, monospace;
+            min-height: 80px;
+            box-sizing: border-box;
+        }
+        .qrcode-wrapper {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #qrcode {
+            border: 5px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .static-key {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <h1>AMap URI 调试参数配置 (V2)</h1>
+
+    <form @submit.prevent>
+        <!-- 第一部分: debug_params -->
+        <fieldset>
+            <legend>Debug Params</legend>
+            <div class="param-row">
+                <input type="checkbox" class="param-toggle" v-model="formState.debug_params.env">
+                <label for="env">env:</label>
+                <input type="text" id="env" v-model="formData.debug_params.env" :disabled="!formState.debug_params.env">
+            </div>
+            <div class="param-row">
+                <input type="checkbox" class="param-toggle" v-model="formState.debug_params.fc_env">
+                <label for="fc_env">fc_env:</label>
+                <input type="text" id="fc_env" v-model="formData.debug_params.fc_env" :disabled="!formState.debug_params.fc_env">
+            </div>
+            <div class="param-row">
+                <input type="checkbox" class="param-toggle" v-model="formState.debug_params.fc_req_env">
+                <label for="fc_req_env">fc_req_env:</label>
+                <input type="text" id="fc_req_env" v-model="formData.debug_params.fc_req_env" :disabled="!formState.debug_params.fc_req_env">
+            </div>
+
+            <div class="nested-fieldset">
+                <fieldset>
+                    <legend>test</legend>
+                    <div class="param-row">
+                        <input type="checkbox" class="param-toggle" v-model="formState.debug_params.test.in">
+                        <label for="test_in">in:</label>
+                        <input type="text" id="test_in" v-model="formData.debug_params.test.in" :disabled="!formState.debug_params.test.in">
+                    </div>
+                    <div class="param-row">
+                        <input type="checkbox" class="param-toggle" v-model="formState.debug_params.test.out">
+                        <label for="test_out">out:</label>
+                        <input type="text" id="test_out" v-model="formData.debug_params.test.out" :disabled="!formState.debug_params.test.out">
+                    </div>
+                </fieldset>
+            </div>
+            
+            <div class="nested-fieldset">
+                <fieldset>
+                    <legend>simple_id</legend>
+                    <div class="param-row">
+                        <input type="checkbox" class="param-toggle" v-model="formState.debug_params.simple_id.in">
+                        <label for="simple_id_in">in:</label>
+                        <input type="text" id="simple_id_in" v-model="formData.debug_params.simple_id.in" :disabled="!formState.debug_params.simple_id.in">
+                    </div>
+                    <div class="param-row">
+                        <input type="checkbox" class="param-toggle" v-model="formState.debug_params.simple_id.out">
+                        <label for="simple_id_out">out:</label>
+                        <input type="text" id="simple_id_out" v-model="formData.debug_params.simple_id.out" :disabled="!formState.debug_params.simple_id.out">
+                    </div>
+                </fieldset>
+            </div>
+        </fieldset>
+
+        <!-- 第二部分: debug_params_switch -->
+        <fieldset>
+            <legend>总开关</legend>
+            <div class="param-row">
+                <input type="checkbox" class="param-toggle" v-model="formState.debug_params_switch">
+                <label for="debug_params_switch">启用 Debug Params (debug_params_switch)</label>
+                <input type="checkbox" id="debug_params_switch" v-model="formData.debug_params_switch" :disabled="!formState.debug_params_switch">
+            </div>
+        </fieldset>
+
+        <!-- 第三部分: custom_params -->
+        <fieldset>
+            <legend>Custom Params</legend>
+            <div v-for="(item, index) in formData.custom_params" :key="item.key" class="custom-param-item">
+                <div class="param-row">
+                    <input type="checkbox" class="param-toggle" v-model="formState.custom_params[index]">
+                    <label :for="'custom_value_' + index">
+                        <span class="static-key">{{ item.key }}</span>
+                    </label>
+                    <input type="text" :id="'custom_value_' + index" v-model="item.value" :disabled="!formState.custom_params[index]">
+                </div>
+            </div>
+        </fieldset>
+    </form>
+
+    <div class="result-container">
+        <h2>生成结果</h2>
+        <p>实时生成的 URL:</p>
+        <div id="result-url">{{ generatedUrl }}</div>
+        
+        <div class="qrcode-wrapper">
+            <p>扫描二维码使用:</p>
+            <div id="qrcode"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed, watch, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            // 原始URL字符串，用于初始化
+            const initialUrl = 'amapuri://info_debug_param/set?debug_params=%7B%22env%22%3A%22gray_test_8%22%2C%22fc_env%22%3A%22gray_test%22%2C%22fc_req_env%22%3A%22gray_test_8%22%2C%22test%22%3A%7B%22in%22%3A%22136395%22%2C%22out%22%3A%22136394_136396%22%7D%2C%22simple_id%22%3A%7B%22in%22%3A%22%22%2C%22out%22%3A%22%22%7D%7D&debug_params_switch=1&custom_params=%5B%7B%22key%22%3A%22votemplatetest%22%2C%22value%22%3A%221%22%2C%22type%22%3A1%7D%2C%7B%22key%22%3A%22poiBizCuttingStreamMode%22%2C%22value%22%3A%22new%22%2C%22type%22%3A0%7D%2C%7B%22key%22%3A%22__amock_id__%22%2C%22value%22%3A%2242667%22%2C%22type%22%3A0%7D%5D';
+
+            // 表单数据模型 (存储值)
+            const formData = ref({
+                debug_params: {
+                    env: '', fc_env: '', fc_req_env: '',
+                    test: { in: '', out: '' },
+                    simple_id: { in: '', out: '' }
+                },
+                debug_params_switch: true,
+                custom_params: []
+            });
+            
+            // 表单状态模型 (存储每个属性是否启用)
+            const formState = ref({
+                debug_params: {
+                    env: true, fc_env: true, fc_req_env: true,
+                    test: { in: true, out: true },
+                    simple_id: { in: true, out: true }
+                },
+                debug_params_switch: true,
+                custom_params: []
+            });
+
+            // 解析初始URL并填充 formData 和 formState
+            const parseInitialUrl = () => {
+                try {
+                    const url = new URL(initialUrl);
+                    const params = url.searchParams;
+                    
+                    const debugParamsStr = params.get('debug_params');
+                    if (debugParamsStr) {
+                        formData.value.debug_params = JSON.parse(decodeURIComponent(debugParamsStr));
+                    }
+                    
+                    formData.value.debug_params_switch = params.get('debug_params_switch') === '1';
+
+                    const customParamsStr = params.get('custom_params');
+                    if (customParamsStr) {
+                        const parsedCustomParams = JSON.parse(decodeURIComponent(customParamsStr));
+                        formData.value.custom_params = parsedCustomParams;
+                        // 初始化 custom_params 的状态，默认全部启用
+                        formState.value.custom_params = parsedCustomParams.map(() => true);
+                    }
+                } catch (e) {
+                    console.error("解析初始URL失败:", e);
+                    alert("无法解析提供的URL，请检查其格式。将使用默认空值。");
+                }
+            };
+
+            // 计算属性：根据formData和formState实时生成URL
+            const generatedUrl = computed(() => {
+                const baseUrl = 'amapuri://info_debug_param/set';
+                const queryParts = [];
+
+                // 1. 处理 debug_params
+                const activeDebugParams = {};
+                const dpState = formState.value.debug_params;
+                const dpData = formData.value.debug_params;
+
+                if (dpState.env) activeDebugParams.env = dpData.env;
+                if (dpState.fc_env) activeDebugParams.fc_env = dpData.fc_env;
+                if (dpState.fc_req_env) activeDebugParams.fc_req_env = dpData.fc_req_env;
+
+                if (dpState.test.in || dpState.test.out) {
+                    activeDebugParams.test = {};
+                    if (dpState.test.in) activeDebugParams.test.in = dpData.test.in;
+                    if (dpState.test.out) activeDebugParams.test.out = dpData.test.out;
+                }
+                
+                if (dpState.simple_id.in || dpState.simple_id.out) {
+                    activeDebugParams.simple_id = {};
+                    if (dpState.simple_id.in) activeDebugParams.simple_id.in = dpData.simple_id.in;
+                    if (dpState.simple_id.out) activeDebugParams.simple_id.out = dpData.simple_id.out;
+                }
+
+                if (Object.keys(activeDebugParams).length > 0) {
+                    queryParts.push(`debug_params=${encodeURIComponent(JSON.stringify(activeDebugParams))}`);
+                }
+
+                // 2. 处理 debug_params_switch
+                if (formState.value.debug_params_switch) {
+                    queryParts.push(`debug_params_switch=${formData.value.debug_params_switch ? '1' : '0'}`);
+                }
+
+                // 3. 处理 custom_params
+                const activeCustomParams = formData.value.custom_params.filter((item, index) => {
+                    return formState.value.custom_params[index];
+                });
+
+                if (activeCustomParams.length > 0) {
+                    queryParts.push(`custom_params=${encodeURIComponent(JSON.stringify(activeCustomParams))}`);
+                }
+                
+                if (queryParts.length === 0) {
+                    return baseUrl;
+                }
+
+                return `${baseUrl}?${queryParts.join('&')}`;
+            });
+
+            let qrcodeInstance = null;
+            
+            const updateQRCode = (url) => {
+                const qrElement = document.getElementById('qrcode');
+                if (!qrElement) return;
+                qrElement.innerHTML = '';
+                qrcodeInstance = new QRCode(qrElement, {
+                    text: url, width: 256, height: 256,
+                    colorDark: "#000000", colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            };
+
+            watch(generatedUrl, (newUrl) => {
+                if (newUrl === 'amapuri://info_debug_param/set') {
+                     document.getElementById('qrcode').innerHTML = '<p>没有选择任何参数</p>';
+                     return;
+                }
+                if (qrcodeInstance) {
+                    qrcodeInstance.makeCode(newUrl);
+                } else {
+                    updateQRCode(newUrl);
+                }
+            }, { immediate: true });
+
+            onMounted(() => {
+                parseInitialUrl();
+            });
+
+            return {
+                formData,
+                formState,
+                generatedUrl
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
