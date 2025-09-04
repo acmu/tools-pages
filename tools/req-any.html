@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON 数据请求与展示工具</title>
+    <!-- [替换方案一] 使用 unpkg CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/json-formatter-js@2.3.4/dist/json-formatter.min.css">
+    <script src="https://unpkg.com/json-formatter-js@2.3.4/dist/json-formatter.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #urlInput {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        #fetchBtn {
+            padding: 10px 20px;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        #fetchBtn:hover {
+            background-color: #2980b9;
+        }
+
+        #fetchBtn:disabled {
+            background-color: #a9cce3;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+            /* Initially hidden */
+        }
+
+        #status.loading {
+            display: block;
+            background-color: #eaf2f8;
+            border: 1px solid #aed6f1;
+            color: #3498db;
+        }
+
+        #status.error {
+            display: block;
+            background-color: #fbeee6;
+            border: 1px solid #f5b7b1;
+            color: #e74c3c;
+        }
+
+        #json-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 20px;
+            background-color: #fafafa;
+            min-height: 200px;
+            max-height: 70vh;
+            overflow: auto;
+            /* Enable scrolling for large content */
+        }
+
+        /* 美化 json-formatter-js 的默认样式 */
+        .json-formatter-row .json-formatter-key {
+            color: #9b239c;
+            /* Key color */
+        }
+
+        .json-formatter-row .json-formatter-string {
+            color: #28a745;
+            /* String color */
+        }
+
+        .json-formatter-row .json-formatter-number {
+            color: #dc3545;
+            /* Number color */
+        }
+
+        .json-formatter-row .json-formatter-boolean {
+            color: #007bff;
+            /* Boolean color */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>大型 JSON 数据查看器</h1>
+        <div class="controls">
+            <input type="url" id="urlInput" placeholder="请输入要请求的 URL..."
+                value="https://jsonplaceholder.typicode.com/photos">
+            <button id="fetchBtn">发送GET请求</button>
+        </div>
+
+        <div id="status"></div>
+
+        <div id="json-container">
+            <p>这里将显示请求返回的 JSON 数据。</p>
+        </div>
+    </div>
+
+    <script>
+        // 等待DOM加载完成
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlInput = document.getElementById('urlInput');
+            const fetchBtn = document.getElementById('fetchBtn');
+            const jsonContainer = document.getElementById('json-container');
+            const statusDiv = document.getElementById('status');
+
+            // 按钮点击事件
+            fetchBtn.addEventListener('click', async () => {
+                const url = urlInput.value.trim();
+                if (!url) {
+                    showStatus('请输入一个有效的URL。', 'error');
+                    return;
+                }
+
+                // 清空之前的内容并显示加载状态
+                jsonContainer.innerHTML = '';
+                showStatus('正在请求数据并解析...', 'loading');
+                fetchBtn.disabled = true; // 禁用按钮防止重复点击
+
+                try {
+                    // 1. 发送 GET 请求
+                    const response = await fetch(url);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP 错误! 状态: ${response.status} ${response.statusText}`);
+                    }
+
+                    // 2. 解析 JSON 数据
+                    // 对于非常大的JSON，这一步可能会有短暂的延迟
+                    showStatus('正在解析JSON...', 'loading');
+                    const data = await response.json();
+
+                    // 3. 使用 json-formatter-js 来渲染数据
+                    showStatus('正在渲染视图...', 'loading');
+
+                    // 创建配置对象
+                    // open: 默认展开的层级。为了满足“默认全部折叠”的需求，我们设置为 1。
+                    // 这意味着只会显示根节点，其下的所有内容都是折叠的。
+                    const formatter = new JSONFormatter(data, 1);
+
+                    // 将渲染后的HTML元素添加到容器中
+                    jsonContainer.appendChild(formatter.render());
+
+                    hideStatus(); // 成功后隐藏状态栏
+
+                } catch (error) {
+                    console.error('请求或解析失败:', error);
+                    showStatus(`发生错误: ${error.message}`, 'error');
+                    jsonContainer.innerHTML = '<p style="color: red;">无法加载或解析数据。</p>';
+                } finally {
+                    fetchBtn.disabled = false; // 重新启用按钮
+                }
+            });
+
+            function showStatus(message, type = 'loading') {
+                statusDiv.textContent = message;
+                statusDiv.className = type; // 'loading' or 'error'
+            }
+
+            function hideStatus() {
+                statusDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>
